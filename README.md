@@ -2,7 +2,7 @@
 
 This repo contains work on sequence-to-function learning based on language models.
 
-The model was trained on 1000 PafA single amino acid mutants and its prediction performance was also shown. 
+The model was trained on 1000 PafA single amino acid mutants (obtained from "Revealing enzyme functional architecture via high-throughput microfluidic enzyme kinetics") and its prediction performance was also shown. 
 
 
 ## Prediction Pipeline
