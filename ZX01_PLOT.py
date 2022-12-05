@@ -266,9 +266,9 @@ def reg_scatter_distn_plot(y_pred,
     #g.fig.subplots_adjust(top = 0.95)
 
     g.ax_joint.text(x_y_range[1] - 1.18 * y_interval , 
-                    x_y_range[1] - 0.1 * y_interval ,
+                    x_y_range[1] - 0.12 * y_interval ,
                     plot_title                      , 
-                    fontsize = font_size - 4        ,
+                    fontsize = font_size - 1        ,
                     )
 
     g.ax_marg_x.set_axis_off()
@@ -277,8 +277,8 @@ def reg_scatter_distn_plot(y_pred,
     g.ax_joint.tick_params(axis = "x", labelsize = font_size - 4)
     g.ax_joint.tick_params(axis = "y", labelsize = font_size - 4)
 
-    g.ax_joint.set_xlabel(x_label, fontsize = font_size + 3, fontweight = 'bold')
-    g.ax_joint.set_ylabel(y_label, fontsize = font_size + 3, fontweight = 'bold')
+    g.ax_joint.set_xlabel(x_label, fontsize = font_size + 1, fontweight = 'bold')
+    g.ax_joint.set_ylabel(y_label, fontsize = font_size + 1, fontweight = 'bold')
     g.ax_joint.set_aspect('equal', adjustable='box')
 
     #g.fig.set_figwidth(8)
