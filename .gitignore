@@ -1,0 +1,9 @@
+/__pycache__
+/N_Deprecated
+*.png
+*.p
+*.fasta
+/N05B_SQembSAtt_y_Experiment.py
+/N_DataProcessing/N05A_intermediate_results
+/N_DataProcessing/N05B_intermediate_results
+/N_DataProcessing/S05A_intermediate_results
