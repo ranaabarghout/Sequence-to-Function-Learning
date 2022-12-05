@@ -7,7 +7,7 @@ The model was trained on 1000 PafA single amino acid mutants and its prediction 
 
 ## Prediction Pipeline
 <p align="center">
-  <img width="800"  src="https://user-images.githubusercontent.com/47986787/205684697-7675f4fc-f821-4218-aede-8979aaac8789.png">
+  <img width="900"  src="https://user-images.githubusercontent.com/47986787/205684697-7675f4fc-f821-4218-aede-8979aaac8789.png">
 </p>
 
 
