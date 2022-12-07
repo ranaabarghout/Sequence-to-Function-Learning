@@ -140,7 +140,7 @@ raw_df_0_1 = copy.deepcopy(raw_df_0)
 #                               `bood'                                                               
 ###################################################################################################################
 # According to the supporting information, the wild type PafA protein can be found in PDB with a code "5TJ3".
-# Also, it can be found in the UniProtKB with a code "Q9KJX5", which gives a sequence a little bit different.
+# Also, it can be found in the UniProtKB with a code "Q9KJX5", which gives a sequence that is a little different.
 # The supporting info contains a sequence starting with "MQKTNA...",
 # However, the variants are named after a four-character code which shows how the PafA sequence are modified.
 # The code shows that starting from the 21th amino acid, the WT sequence is "QKTNA...".
