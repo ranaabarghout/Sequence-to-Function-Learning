@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Tue Dec  6 15:08:33 2022
+
+@author: Rana
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Dec  6 12:40:03 2022
 
 @author: Rana
@@ -100,12 +107,12 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed=1234
+seed=42
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
+#torch.cuda.manual_seed(seed)
+#torch.cuda.manual_seed_all(seed)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
 #                    `7MMF'`7MN.   `7MF'`7MM"""Mq. `7MMF'   `7MF'MMP""MM""YMM  .M"""bgd                                                                #
@@ -129,7 +136,7 @@ data_folder = Path("N_DataProcessing/")
 
 embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 0
                         "N03_" + dataset_nme + "_embedding_ESM_1V.p"   ,      # 1
-                        "N03_" + dataset_nme + "_embedding_ESM_2_650_0.p",      # 2
+                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p" ,      # 2
                         "N03_" + dataset_nme + "_embedding_BERT.p"     ,      # 3
                         "N03_" + dataset_nme + "_embedding_TAPE.p"     ,      # 4
                         "N03_" + dataset_nme + "_embedding_ALBERT.p"   ,      # 5
@@ -137,7 +144,7 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 
                         "N03_" + dataset_nme + "_embedding_TAPE_FT.p"  ,      # 7
                         "N03_" + dataset_nme + "_embedding_Xlnet.p"    ,      # 8
                         ]
-embedding_file      = embedding_file_list[2]
+embedding_file      = embedding_file_list[1]
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
@@ -183,7 +190,7 @@ learning_rate  =  [0.01        , # 0
                    0.0001      , # 6
                    0.00005     , # 7
                    0.00002     , # 8
-                   0.00001     , # 9
+                   0.00001     , # 8
                    0.000005    , # 10
                    0.000002    , # 11
                    0.000001    , # 12
@@ -203,10 +210,10 @@ model = LSTM(in_dim   = NN_input_dim,
             )
             '''
 hid_dim    = 256    # 256
-latent_dim   = 1024      # 5
+latent_dim   = 244      # 5
 out_dim    = 1      # 2
 num_layers   = 1      # 3
-last_hid   = 1224  # 1024
+last_hid   = 1024   # 1024
 dropout    = 0.0     # 0
 #====================================================================================================#
 # Prepare print outputs.
@@ -414,12 +421,13 @@ def Get_X_y_data(X_seqs_all_hiddens_list, properties_dict, prpty_select, log_val
     print("len(X_seqs_all_hiddens_list): ", len(X_seqs_all_hiddens_list))
     print("len(y_data): ", len(y_data))
 
-
+    print("Shape: X_seqs_all_hiddens_list", X_seqs_all_hiddens_list.shape)
     for j in range(len(X_seqs_all_hiddens_list)):
         if not (np.isnan(y_data[j])):
             X_seqs_all_hiddens.append(X_seqs_all_hiddens_list[j])
             y_seqs_prpty.append(y_data[j])
 
+    print("Shape: X_seqs_all_hiddens", X_seqs_all_hiddens.shape)
     y_seqs_prpty = np.array(y_seqs_prpty)
     if log_value == True:
         y_seqs_prpty = np.log10(y_seqs_prpty)
@@ -572,16 +580,16 @@ class LSTM(nn.Module):
                  dropout: float = 0.
                  ):
         super().__init__()
-        self.latent_dim = latent_dim
         self.num_layers = num_layers
         self.hid_dim = hid_dim
+        self.latent_dim = latent_dim
         #--------------------------------------------------#
         self.encoder_LSTM = nn.LSTM(in_dim, hid_dim, batch_first=True, num_layers=num_layers)
         self.mean = nn.Linear(in_features=hid_dim*num_layers, out_features=latent_dim)
         self.log_variance = nn.Linear(in_features=hid_dim*num_layers, out_features = latent_dim)
         self.dropout = nn.Dropout(dropout, inplace=True)
         #--------------------------------------------------#
-        self.fc_1 = nn.Linear(int(self.latent_dim),last_hid)
+        self.fc_1 = nn.Linear(int(latent_dim),last_hid)
         self.fc_2 = nn.Linear(last_hid,last_hid)
         self.fc_3 = nn.Linear(last_hid,1)
         self.cls = nn.Sigmoid()
@@ -590,28 +598,25 @@ class LSTM(nn.Module):
         # Pad the packed input (already done when input into the NN)
         packed_output_encoder, hidden_encoder = self.encoder_LSTM(x_inputs, hidden_encoder)
         output_encoder, _ = nn.utils.rnn.pad_packed_sequence(packed_output_encoder, batch_first=True, total_length=padding_length)
-        output_encoder.cuda()
         
         # Estimate the mean and the variance
-        mean = self.mean(hidden_encoder[0]).cuda()
+        mean = self.mean(hidden_encoder[0])
         log_var = self.log_variance(hidden_encoder[0])
-        std = torch.exp(0.5*log_var).cuda()
-        
-        output_encoder = output_encoder.contiguous().cuda()
+        std = torch.exp(0.5*log_var)
         
         # Generating unit Gaussian noise
+        output_encoder = output_encoder.contiguous()
         batch_size = output_encoder.shape[0]
         seq_len = output_encoder.shape[1]
-        noise = torch.randn(batch_size, self.latent_dim).cuda()
+        noise = torch.randn(batch_size, self.latent_dim)
         
         z = noise*std + mean
-        #print("Z DIMENSION:", z.shape)
+        print("Z DIMENSION:", z.shape)
         return z, mean, log_var, hidden_encoder
     
     def initial_hidden_vars(self, batch_size):
-        hidden_cell = torch.zeros(self.num_layers, batch_size, self.hid_dim).double().cuda()
-        state_cell = torch.zeros(self.num_layers, batch_size, self.hid_dim).double().cuda()
-        
+        hidden_cell = torch.zeros(self.num_layers, batch_size, self.hid_dim).double()
+        state_cell = torch.zeros(self.num_layers, batch_size, self.hid_dim).double()
         return (hidden_cell, state_cell)
 
 
@@ -619,10 +624,10 @@ class LSTM(nn.Module):
         max_length = x.shape[1]
         #hidden_cell = torch.zeros(self.num_layers, x.shape[0], self.hid_dim)
         #state_cell = torch.zeros(self.num_layers, x.shape[0], self.hid_dim)
-        lengths = lengths.cpu()
-        x = nn.utils.rnn.pack_padded_sequence(input=x, lengths=lengths, batch_first=True, enforce_sorted=False)
+        
+        x = nn.utils.rnn.pack_padded_sequence(input=x, lengths=lengths.cpu(), batch_first=True, enforce_sorted=False)
         z, mean, log_var, hidden_encoder = self.encoder(x, max_length, hidden_encoder)
-        #print("Z DIMENSION:", z.shape)
+        z = z.flatten(); print("Z DIMENSION:", z.shape)
         #--------------------------------------------------#
         #output = nn.functional.relu(z)
         #output = self.dropout1(output)
@@ -658,7 +663,6 @@ model = LSTM(
             )
 
 model.double()
-model.cuda()
 #--------------------------------------------------#
 print("#"*50)
 print(model)
@@ -678,7 +682,7 @@ print("\n\n\n>>>  Training... ")
 print("="*80)
 
 max_r = []
-test_rs = []
+
 input_var_names_list = ["seqs_embeddings", ]
 
 for epoch in range(epoch_num): 
@@ -688,7 +692,7 @@ for epoch in range(epoch_num):
     model.train()
     count_x=0
     for one_seq_ppt_group in train_loader:
-        len_train_loader=batch_size
+        len_train_loader=len(train_loader)
         count_x+=1
 
         if count_x == 20 :
@@ -699,11 +703,11 @@ for epoch in range(epoch_num):
             print( str(count_x) + "/" + str(len_train_loader) + "->", end=" ")
         #--------------------------------------------------#
         seq_rep, seq_lens, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["seqs_lens"], one_seq_ppt_group["y_property"]
-        seq_rep, seq_lens, target = seq_rep.double().cuda(), seq_lens.cuda(), target.double().cuda()
+        seq_rep, seq_lens, target = seq_rep.double(), seq_lens, target.double()
         states = model.initial_hidden_vars(len_train_loader)
         input_vars = [seq_rep, seq_lens, states]
         output = model(*input_vars)
-        loss = criterion(torch.squeeze(output),torch.squeeze(target))
+        loss = criterion(output,target.view(-1,1))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -715,9 +719,9 @@ for epoch in range(epoch_num):
     #--------------------------------------------------#
     # Validation.
     for one_seq_ppt_group in valid_loader:
-        len_val_loader = batch_size
+        len_val_loader = len(valid_loader)
         seq_rep, seq_lens, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["seqs_lens"], one_seq_ppt_group["y_property"]
-        seq_rep, seq_lens = seq_rep.double().cuda(), seq_lens.cuda()
+        seq_rep, seq_lens = seq_rep.double(), seq_lens
         states = model.initial_hidden_vars(len_val_loader)
         input_vars = [seq_rep, seq_lens, states]
         output = model(*input_vars)
@@ -731,13 +735,13 @@ for epoch in range(epoch_num):
 
     #====================================================================================================#
     y_pred = []
-    y_real = []; 
+    y_real = []
     #--------------------------------------------------#
 
     for one_seq_ppt_group in test_loader:
-        len_test_loader = batch_size
-        seq_rep, seq_lens, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["seqs_lens"], one_seq_ppt_group["y_property"]
-        seq_rep, seq_lens = seq_rep.double().cuda(), seq_lens.cuda()
+        len_test_loader = len(test_loader)
+        seq_rep, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["seqs_lens"], one_seq_ppt_group["y_property"]
+        seq_rep, seq_lens = seq_rep.double(), seq_lens
         states = model.initial_hidden_vars(len_test_loader)
         input_vars = [seq_rep, seq_lens, states]
         output = model(*input_vars)
@@ -748,7 +752,7 @@ for epoch in range(epoch_num):
     y_pred = np.concatenate(y_pred)
     y_real = np.concatenate(y_real)
     #--------------------------------------------------#
-    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real); test_rs.append(r_value); 
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real)
 
     #====================================================================================================#
     # Report.
@@ -902,15 +906,10 @@ for epoch in range(epoch_num):
                                 result_folder  = results_sub_folder,
                                 file_name      = output_file_header + "_logplot" + "epoch_" + str(epoch+1),
                                 ) #For checking predictions fittings.
-	
-	
-###################################################################################################################
-###################################################################################################################
-max_test_r = round(max(test_rs),3);
-test_rs = np.array(test_rs); max_test_r_index = test_rs.argmax()+1
-print(f"Best Pearson's R for the test set was {max_test_r} at epoch number {max_test_r_index}")
-print(Step_code, "Done!")
 
+###################################################################################################################
+###################################################################################################################
+print(Step_code, "Done!")
 
 
 #       M              M              M              M              M               M              M              M              M              M      #
