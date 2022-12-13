@@ -60,8 +60,8 @@ from torch.nn.utils.weight_norm import weight_norm
 #from torchvision import models
 #from torchsummary import summary
 #--------------------------------------------------#
-from tape import datasets
-from tape import TAPETokenizer
+#from tape import datasets
+#from tape import TAPETokenizer
 #--------------------------------------------------#
 from sklearn import datasets
 from sklearn import preprocessing
@@ -100,7 +100,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed=1234
+seed=int(sys.argv[1])
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -129,7 +129,7 @@ data_folder = Path("N_DataProcessing/")
 
 embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 0
                         "N03_" + dataset_nme + "_embedding_ESM_1V.p"   ,      # 1
-                        "N03_" + dataset_nme + "_embedding_ESM_2_650_0.p",      # 2
+                        "N03_" + dataset_nme + "_embedding_ESM_2_650_0.p",    # 2
                         "N03_" + dataset_nme + "_embedding_BERT.p"     ,      # 3
                         "N03_" + dataset_nme + "_embedding_TAPE.p"     ,      # 4
                         "N03_" + dataset_nme + "_embedding_ALBERT.p"   ,      # 5
@@ -166,7 +166,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[0]
+prpty_select = prpty_list[3]
 
 #====================================================================================================#
 # Prediction NN settings
@@ -666,6 +666,11 @@ print(model)
 #print( summary( model,[(seqs_max_len, NN_input_dim),] )  )
 #model.double()
 print("#"*50)
+
+model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+params = sum([np.prod(p.size()) for p in model_parameters])
+print("Number of trainable model parameters: ", params)
+
 #--------------------------------------------------#
 optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
 #optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
